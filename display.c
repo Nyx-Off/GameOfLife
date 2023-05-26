@@ -9,6 +9,7 @@ void initDisplay(int width, int height) {
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 }
 
+
 void updateDisplay(Grid* grid) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
@@ -17,9 +18,10 @@ void updateDisplay(Grid* grid) {
     for (int i = 0; i < grid->height; i++) {
         for (int j = 0; j < grid->width; j++) {
             Cell* cell = &(grid->cells[i][j]);
-            SDL_Rect cellRect = {cell->x * 4, cell->y * 4, 4, 4}; // taille des cellules définie à 2px pour cet exemple
+            SDL_Rect cellRect = {cell->x * 8, cell->y * 8, 8, 8};
             if (cell->status == ALIVE) {
-                SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255); // couleur blanche pour les cellules vivantes
+                // Utilisez la couleur souhaitée ici, par exemple, la couleur en fonction du compteur pour les cellules vivantes
+                SDL_SetRenderDrawColor(renderer,(rand() % 226) + 30, (rand() % 226) + 30,(rand() % 226) + 30, 255);
             } else {
                 SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // couleur noire pour les cellules mortes
             }
@@ -29,6 +31,7 @@ void updateDisplay(Grid* grid) {
 
     SDL_RenderPresent(renderer);
 }
+
 
 void freeDisplay() {
     SDL_DestroyRenderer(renderer);

@@ -71,8 +71,8 @@ int main(int argc, char* argv[]) {
         if (!paused) {
             // Sauvegarde de l'état actuel de la grille avant l'itération
             char filename[100]; 
-            sprintf(filename, "save_state\\gridsave_%d.txt", SDL_GetTicks());
-            saveGrid(grid, filename);
+            //sprintf(filename, "save_state\\gridsave_%d.txt", SDL_GetTicks());
+            //saveGrid(grid, filename);
 
             // Mise à jour de l'historique et de la grille
             addGridToList(&history, copyGrid(grid));
