@@ -2,9 +2,10 @@
 GameOfLife-HomeWork
 
 
-don't forget to create "save_state" folder./n
+don't forget to create "save_state" folder.
+
 all files need to be in the same folder.
-\n\n
+
 
 Fonctionnalités : 
 - pause. * [space]*
