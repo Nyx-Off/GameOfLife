@@ -14,11 +14,19 @@ void updateDisplay(Grid* grid) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
+    // Obtenez la largeur et la hauteur de la fenêtre
+    int windowWidth, windowHeight;
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+    // Calculez la taille de la cellule pour que toutes les cellules s'adaptent à la fenêtre
+    int cellWidth = windowWidth / grid->width;
+    int cellHeight = windowHeight / grid->height;
+
     // Parcourez toutes les cellules et dessinez-les
     for (int i = 0; i < grid->height; i++) {
         for (int j = 0; j < grid->width; j++) {
             Cell* cell = &(grid->cells[i][j]);
-            SDL_Rect cellRect = {cell->x * 8, cell->y * 8, 8, 8};
+            SDL_Rect cellRect = {cell->x * cellWidth, cell->y * cellHeight, cellWidth, cellHeight};
             if (cell->status == ALIVE) {
                 // Utilisez la couleur souhaitée ici, par exemple, la couleur en fonction du compteur pour les cellules vivantes
                 SDL_SetRenderDrawColor(renderer,(rand() % 226) + 30, (rand() % 226) + 30,(rand() % 226) + 30, 255);
@@ -31,6 +39,8 @@ void updateDisplay(Grid* grid) {
 
     SDL_RenderPresent(renderer);
 }
+
+
 
 
 void freeDisplay() {

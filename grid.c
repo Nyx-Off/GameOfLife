@@ -32,12 +32,26 @@ void resetGrid(Grid* grid) {
 }
 
 void resizeGrid(Grid* grid, int newWidth, int newHeight) {
-    // Réallocation de la mémoire pour les cellules
-    grid->cells = (Cell**) realloc(grid->cells, newHeight * sizeof(Cell*));
+    // Create new cells
+    Cell** newCells = (Cell**) malloc(newHeight * sizeof(Cell*));
     for (int i = 0; i < newHeight; i++) {
-        grid->cells[i] = (Cell*) realloc(grid->cells[i], newWidth * sizeof(Cell));
+        newCells[i] = (Cell*) malloc(newWidth * sizeof(Cell));
+        for (int j = 0; j < newWidth; j++) {
+            if (i < grid->height && j < grid->width) {
+                newCells[i][j] = grid->cells[i][j];  // Copy old cells
+            } else {
+                newCells[i][j].x = i;
+                newCells[i][j].y = j;
+                newCells[i][j].status = DEAD;  // Initialize new cells
+            }
+        }
     }
     
+    // Free old cells
+    freeGrid(grid);
+
+    // Update grid
+    grid->cells = newCells;
     grid->width = newWidth;
     grid->height = newHeight;
 }

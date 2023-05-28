@@ -9,17 +9,21 @@ int main(int argc, char* argv[]) {
     // Initialisation de la SDL
     initDisplay(800, 800);
 
+    // Demander à l'utilisateur la taille de la grille
+    int size;
+    printf("Veuillez entrer la taille de la grille(cellules x cellules): ");
+    scanf("%d", &size);
+
     // Initialisation de la liste pour le suivi de l'historique de la grille
     GridList* history = NULL;
     GridList* future = NULL;
 
     // Chargement de la grille à partir d'un fichier
-    Grid* grid = loadGrid("last_state.txt");
+    Grid* grid = loadGrid("start.txt");
     if (grid == NULL) {
-        grid = createGrid(100, 100);
+        grid = createGrid(size, size);
         initializeGrid(grid);
     }
-
     int running = 1;
     int paused = 0;
     while (running) {
@@ -37,30 +41,42 @@ int main(int argc, char* argv[]) {
                             paused = !paused;
                             break;
                         case SDLK_r:
-                        resetGrid(grid);
-                        initializeGrid(grid); // ajouter cette ligne
-                        if (paused) { // ajouter ces lignes
-                            while (history) { 
-                                GridList* previousGrid = history;
-                                history = history->next;
-                                freeGrid(previousGrid->grid);
-                                free(previousGrid);
-                            }
-                            addGridToList(&history, copyGrid(grid));
+                        freeGrid(grid);  // Libérer la mémoire de l'ancienne grille
+                        grid = loadGrid("start.txt");  // Charger à nouveau la grille à partir du fichier
+                        if (grid == NULL) {
+                            grid = createGrid(size, size);
+                            initializeGrid(grid);
                         }
+                        while (history) {
+                            GridList* previousGrid = history;
+                            history = previousGrid->next;
+                            freeGrid(previousGrid->grid);
+                            free(previousGrid);
+                        }
+                        addGridToList(&history, copyGrid(grid));
                         break;
                         case SDLK_RIGHT:
-                            if (paused) {
-                                updateGrid(grid);
+                        if (paused && future) {
+                            GridList* nextGrid = future;
+                            future = future->prev;
+                            addGridToList(&history, copyGrid(grid));
+                            grid = nextGrid->grid;
+                            free(nextGrid);
+                        } else {
+                            addGridToList(&history, copyGrid(grid));
+                            updateGrid(grid);
+                            while (future) {
+                                GridList* nextGrid = future;
+                                future = future->prev;
+                                freeGrid(nextGrid->grid);
+                                free(nextGrid);
                             }
-                            break;
+                        }
+                        break;
                         case SDLK_LEFT:
                             if (paused && history) {
-                                GridList* previousGrid = history;
-                                history = history->next;
                                 addGridToList(&future, grid);
-                                grid = previousGrid->grid;
-                                free(previousGrid);
+                                grid = getPreviousGrid(&history);
                             }
                             break;
                     }
@@ -69,23 +85,16 @@ int main(int argc, char* argv[]) {
         }
 
         if (!paused) {
-            // Sauvegarde de l'état actuel de la grille avant l'itération
-            char filename[100]; 
-            //sprintf(filename, "save_state\\gridsave_%d.txt", SDL_GetTicks());
-            //saveGrid(grid, filename);
-
-            // Mise à jour de l'historique et de la grille
             addGridToList(&history, copyGrid(grid));
             updateGrid(grid);
-
-            // Vidange de la liste future quand le jeu n'est pas en pause
             while (future) {
                 GridList* nextGrid = future;
-                future = future->next;
+                future = future->prev;
                 freeGrid(nextGrid->grid);
                 free(nextGrid);
             }
         }
+
 
         // Mise à jour de l'affichage
         updateDisplay(grid);
@@ -99,17 +108,18 @@ int main(int argc, char* argv[]) {
 
     while (history) {
         GridList* previousGrid = history;
-        history = history->next;
+        history = previousGrid->next;
         freeGrid(previousGrid->grid);
         free(previousGrid);
     }
 
     while (future) {
         GridList* nextGrid = future;
-        future = future->next;
+        future = nextGrid->next;
         freeGrid(nextGrid->grid);
         free(nextGrid);
     }
 
     return 0;
 }
+
