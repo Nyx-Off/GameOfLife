@@ -7,13 +7,13 @@ Utilisations de la librairie SDL2.
 Mettre tous les fichiers dans le même dossier.
 
 Fonctionnalités : 
-— Pause. * [espace]*
-— Revenir en arrière une fois en pause.* [gauche]*
-— Avancer de 1 génération une fois en pause. [droite]
-— Reset le jeu. [r]
+- Pause. * [espace]*
+- Revenir en arrière une fois en pause.* [gauche]*
+- Avancer de 1 génération une fois en pause. [droite]
+- Reset le jeu. [r]
 - Sauvegarde le dernier paterne dans un fichier TXT.
-— Chaque cellule a une couleur différente.
-— Démarre avec une grille de start (s'il n'y a pas, il démarre avec le paterne généré).
+- Chaque cellule a une couleur différente.
+- Démarre avec une grille de start (s'il n'y a pas, il démarre avec le paterne généré).
 
 ---------------------------------------------------------------
 
