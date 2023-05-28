@@ -1,0 +1,497 @@
+cell.h : 
+
+#ifndef CELL_H
+#define CELL_H
+
+typedef enum {
+    DEAD,
+    ALIVE
+} CellState;
+
+typedef struct {
+    int x;
+    int y;
+    CellState status;  // DEAD ou ALIVE
+} Cell;
+
+#endif
+
+display.c : 
+
+#include "display.h"
+
+SDL_Window* window = NULL;
+SDL_Renderer* renderer = NULL;
+
+void initDisplay(int width, int height) {
+    SDL_Init(SDL_INIT_VIDEO);
+    window = SDL_CreateWindow("Game of Life", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+}
+
+
+void updateDisplay(Grid* grid) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+
+    // Obtenez la largeur et la hauteur de la fenêtre
+    int windowWidth, windowHeight;
+    SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+
+    // Calculez la taille de la cellule pour que toutes les cellules s'adaptent à la fenêtre
+    int cellWidth = windowWidth / grid->width;
+    int cellHeight = windowHeight / grid->height;
+
+    // Parcourez toutes les cellules et dessinez-les
+    for (int i = 0; i < grid->height; i++) {
+        for (int j = 0; j < grid->width; j++) {
+            Cell* cell = &(grid->cells[i][j]);
+            SDL_Rect cellRect = {cell->x * cellWidth, cell->y * cellHeight, cellWidth, cellHeight};
+            if (cell->status == ALIVE) {
+                // Utilisez la couleur souhaitée ici, par exemple, la couleur en fonction du compteur pour les cellules vivantes
+                SDL_SetRenderDrawColor(renderer,(rand() % 226) + 30, (rand() % 226) + 30,(rand() % 226) + 30, 255);
+            } else {
+                SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // couleur noire pour les cellules mortes
+            }
+            SDL_RenderFillRect(renderer, &cellRect);
+        }
+    }
+
+    SDL_RenderPresent(renderer);
+}
+
+
+
+
+void freeDisplay() {
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+}
+
+display.h : 
+
+#ifndef DISPLAY_H
+#define DISPLAY_H
+
+#include <SDL.h>
+#include "grid.h"
+
+void initDisplay(int width, int height);
+void updateDisplay(Grid* grid);
+void freeDisplay();
+
+#endif
+
+gameoflife.c : 
+
+#include "gameoflife.h"
+
+Grid* copyGrid(const Grid* grid) {
+    Grid* newGrid = createGrid(grid->width, grid->height);
+    for (int i = 0; i < grid->height; i++) {
+        for (int j = 0; j < grid->width; j++) {
+            newGrid->cells[i][j] = grid->cells[i][j];
+        }
+    }
+    return newGrid;
+}
+
+void applyGameOfLifeRules(Grid* grid) {
+    // Copie de la grille pour se référer aux états précédents
+    Grid* oldGrid = copyGrid(grid);
+
+    for (int i = 0; i < grid->height; i++) {
+        for (int j = 0; j < grid->width; j++) {
+            int livingNeighbors = countLivingNeighbors(oldGrid, i, j);
+
+            if (oldGrid->cells[i][j].status == DEAD && livingNeighbors == 3) {
+                grid->cells[i][j].status = ALIVE; // Naissance
+            } else if (oldGrid->cells[i][j].status == ALIVE && (livingNeighbors < 2 || livingNeighbors > 3)) {
+                grid->cells[i][j].status = DEAD; // Mort
+            }
+        }
+    }
+    
+    freeGrid(oldGrid); // Libération de la mémoire de la grille copiée
+}
+
+int countLivingNeighbors(Grid* grid, int row, int col) {
+    int count = 0;
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            int newRow = row + i;
+            int newCol = col + j;
+            if (newRow >= 0 && newRow < grid->height && newCol >= 0 && newCol < grid->width) {
+                count += (grid->cells[newRow][newCol].status == ALIVE) ? 1 : 0;
+            }
+        }
+    }
+    count -= (grid->cells[row][col].status == ALIVE) ? 1 : 0; // On enlève la cellule elle-même
+    return count;
+}
+
+
+gameoflife.h : 
+
+#ifndef GAMEOFLIFE_H
+#define GAMEOFLIFE_H
+
+#include "grid.h"
+
+void applyGameOfLifeRules(Grid* grid);
+int countLivingNeighbors(Grid* grid, int row, int col);
+
+#endif
+
+grid.c : 
+
+#include <stdlib.h>
+#include <stdio.h>  
+#include "grid.h"
+#include "gameoflife.h" 
+
+Grid* createGrid(int width, int height) {
+    Grid* grid = (Grid*) malloc(sizeof(Grid));
+    grid->width = width;
+    grid->height = height;
+    
+    // Memory allocation for cells
+    grid->cells = (Cell**) malloc(height * sizeof(Cell*));
+    for (int i = 0; i < height; i++) {
+        grid->cells[i] = (Cell*) malloc(width * sizeof(Cell));
+        for (int j = 0; j < width; j++) {
+            grid->cells[i][j].x = i;
+            grid->cells[i][j].y = j;
+            grid->cells[i][j].status = DEAD;
+        }
+    }
+    
+    return grid;
+}
+
+// grid.c
+void resetGrid(Grid* grid) {
+    for(int i = 0; i < grid->height; i++) {
+        for(int j = 0; j < grid->width; j++) {
+            grid->cells[i][j].status = DEAD;
+        }
+    }
+}
+
+void resizeGrid(Grid* grid, int newWidth, int newHeight) {
+    // Create new cells
+    Cell** newCells = (Cell**) malloc(newHeight * sizeof(Cell*));
+    for (int i = 0; i < newHeight; i++) {
+        newCells[i] = (Cell*) malloc(newWidth * sizeof(Cell));
+        for (int j = 0; j < newWidth; j++) {
+            if (i < grid->height && j < grid->width) {
+                newCells[i][j] = grid->cells[i][j];  // Copy old cells
+            } else {
+                newCells[i][j].x = i;
+                newCells[i][j].y = j;
+                newCells[i][j].status = DEAD;  // Initialize new cells
+            }
+        }
+    }
+    
+    // Free old cells
+    freeGrid(grid);
+
+    // Update grid
+    grid->cells = newCells;
+    grid->width = newWidth;
+    grid->height = newHeight;
+}
+
+void initializeGrid(Grid* grid) {
+    for(int i = 0; i < grid->height; i++) {
+        for(int j = 0; j < grid->width; j++) {
+            if (i == j || i == grid->width - j) { // par exemple, initialiser une diagonale de cellules à ALIVE
+                grid->cells[i][j].status = ALIVE;
+            } else {
+                grid->cells[i][j].status = DEAD;
+            }
+        }
+    }
+}
+
+void updateGrid(Grid* grid) {
+    // Logic for updating the grid goes here.
+    applyGameOfLifeRules(grid); // Added this line
+}
+
+void freeGrid(Grid* grid) {
+    for (int i = 0; i < grid->height; i++) {
+        free(grid->cells[i]);
+    }
+    free(grid->cells);
+    free(grid);
+}
+
+
+void saveGrid(Grid* grid, const char* filename) {
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("Erreur d'ouverture du fichier %s\n", filename);
+        return;
+    }
+
+    fprintf(file, "%d %d\n", grid->width, grid->height);
+
+    for (int i = 0; i < grid->height; i++) {
+        for (int j = 0; j < grid->width; j++) {
+            fprintf(file, "%d ", grid->cells[i][j].status);
+        }
+        fprintf(file, "\n");
+    }
+
+    fclose(file);
+}
+
+Grid* loadGrid(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Erreur d'ouverture du fichier %s\n", filename);
+        return NULL;
+    }
+
+    int width, height;
+    fscanf(file, "%d %d", &width, &height);
+
+    Grid* grid = createGrid(width, height);
+
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            fscanf(file, "%d", &(grid->cells[i][j].status));
+        }
+    }
+
+    fclose(file);
+
+    return grid;
+}
+
+grid.h : 
+
+#ifndef GRID_H
+#define GRID_H
+
+#include "cell.h"
+
+typedef struct {
+    int width;
+    int height;
+    Cell** cells;
+} Grid;
+
+Grid* createGrid(int width, int height);
+void resizeGrid(Grid* grid, int newWidth, int newHeight);
+void freeGrid(Grid* grid);
+void initializeGrid(Grid* grid);
+void updateGrid(Grid* grid);
+void saveGrid(Grid* grid, const char* filename);
+Grid* loadGrid(const char* filename);
+void resetGrid(Grid* grid);
+Grid* copyGrid(const Grid* original);
+
+#endif
+
+gridlist.c : 
+
+#include <stdlib.h>
+#include "gridlist.h"
+
+void addGridToList(GridList** list, Grid* grid) {
+    GridList* newList = (GridList*) malloc(sizeof(GridList));
+    newList->grid = grid;
+    newList->next = *list;
+    newList->prev = NULL;
+    newList->count = (*list != NULL) ? (*list)->count + 1 : 1;  // Increment count
+
+    if (*list != NULL) {
+        (*list)->prev = newList;
+    }
+    *list = newList;
+
+    // Check if list size exceeded maximum and remove oldest if necessary
+    if ((*list)->count > MAX_LIST_SIZE) {
+        GridList* current = *list;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        if (current->prev != NULL) {
+            current->prev->next = NULL;
+        }
+        freeGrid(current->grid);
+        free(current);
+    }
+}
+
+Grid* getPreviousGrid(GridList** list) {
+    if (*list == NULL) {
+        return NULL;
+    }
+    Grid* grid = (*list)->grid;
+    *list = (*list)->next;
+    return grid;
+}
+
+Grid* getNextGrid(GridList** list) {
+    if (*list == NULL) {
+        return NULL;
+    }
+    Grid* grid = (*list)->grid;
+    *list = (*list)->next;
+    return grid;
+}
+
+gridlist.h : 
+
+#ifndef GRIDLIS_H
+#define GRIDLIS_H
+#define MAX_LIST_SIZE 100
+
+
+#include "grid.h"
+
+typedef struct GridList {
+    struct GridList* next;
+    struct GridList* prev;
+    Grid* grid;
+    int count;
+} GridList;
+
+void addGridToList(GridList** list, Grid* grid);
+Grid* getPreviousGrid(GridList** list);
+Grid* getNextGrid(GridList** list);  
+void clearGridList(GridList** list);
+
+#endif
+
+main.c : 
+
+#include <SDL.h>
+#include <stdio.h>
+#include "grid.h"
+#include "gameoflife.h"
+#include "display.h"
+#include "gridlist.h"
+
+int main(int argc, char* argv[]) {
+    // Initialisation de la SDL
+    initDisplay(800, 800);
+
+    // Demander à l'utilisateur la taille de la grille
+    int size;
+    printf("Veuillez entrer la taille de la grille(cellules x cellules): ");
+    scanf("%d", &size);
+
+    // Initialisation de la liste pour le suivi de l'historique de la grille
+    GridList* history = NULL;
+    GridList* future = NULL;
+
+    // Chargement de la grille à partir d'un fichier
+    Grid* grid = loadGrid("start.txt");
+    if (grid == NULL) {
+        grid = createGrid(size, size);
+        initializeGrid(grid);
+    }
+    int running = 1;
+    int paused = 0;
+    while (running) {
+        // Traitement des événements SDL
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+                case SDL_QUIT:
+                    saveGrid(grid, "last_state.txt");
+                    running = 0;
+                    break;
+                case SDL_KEYDOWN:
+                    switch (event.key.keysym.sym) {
+                        case SDLK_SPACE:
+                            paused = !paused;
+                            break;
+                        case SDLK_r:
+                        freeGrid(grid);  // Libérer la mémoire de l'ancienne grille
+                        grid = loadGrid("start.txt");  // Charger à nouveau la grille à partir du fichier
+                        if (grid == NULL) {
+                            grid = createGrid(size, size);
+                            initializeGrid(grid);
+                        }
+                        while (history) {
+                            GridList* previousGrid = history;
+                            history = previousGrid->next;
+                            freeGrid(previousGrid->grid);
+                            free(previousGrid);
+                        }
+                        addGridToList(&history, copyGrid(grid));
+                        break;
+                        case SDLK_RIGHT:
+                        if (paused && future) {
+                            GridList* nextGrid = future;
+                            future = future->prev;
+                            addGridToList(&history, copyGrid(grid));
+                            grid = nextGrid->grid;
+                            free(nextGrid);
+                        } else {
+                            addGridToList(&history, copyGrid(grid));
+                            updateGrid(grid);
+                            while (future) {
+                                GridList* nextGrid = future;
+                                future = future->prev;
+                                freeGrid(nextGrid->grid);
+                                free(nextGrid);
+                            }
+                        }
+                        break;
+                        case SDLK_LEFT:
+                            if (paused && history) {
+                                addGridToList(&future, grid);
+                                grid = getPreviousGrid(&history);
+                            }
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        if (!paused) {
+            addGridToList(&history, copyGrid(grid));
+            updateGrid(grid);
+            while (future) {
+                GridList* nextGrid = future;
+                future = future->prev;
+                freeGrid(nextGrid->grid);
+                free(nextGrid);
+            }
+        }
+
+
+        // Mise à jour de l'affichage
+        updateDisplay(grid);
+
+        SDL_Delay(100);
+    }
+
+    // Libération des ressources
+    freeGrid(grid);
+    freeDisplay();
+
+    while (history) {
+        GridList* previousGrid = history;
+        history = previousGrid->next;
+        freeGrid(previousGrid->grid);
+        free(previousGrid);
+    }
+
+    while (future) {
+        GridList* nextGrid = future;
+        future = nextGrid->next;
+        freeGrid(nextGrid->grid);
+        free(nextGrid);
+    }
+
+    return 0;
+}
